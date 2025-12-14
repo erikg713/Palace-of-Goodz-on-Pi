@@ -1,4 +1,4 @@
-# Digital-Bazaar
+# Palace of Goodz on Pi Network web3 
 A Web3-powered, Pi-authenticated store for  skins, assets, mods, tools, and templates.     
 🔥 Business Blueprint: Pi Digital Bazaar
 
