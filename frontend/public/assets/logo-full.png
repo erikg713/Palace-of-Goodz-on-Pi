@@ -1,1 +1,2 @@
-
+// Correct way to reference public assets in your components:
+<img src="/assets/logo-full.png" alt="Palace Logo" />
