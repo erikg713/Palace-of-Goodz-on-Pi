@@ -4,4 +4,4 @@ Allow: /inventory
 Disallow: /dashboard
 Disallow: /create-item
 
-Sitemap: http://50.87.138.35/sitemap.xml
+Sitemap: https://palace-of-goodz.pinet.com/sitemap.xml
