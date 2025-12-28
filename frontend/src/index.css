@@ -1,7 +1,44 @@
+/* 1. Core Tailwind Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-100 text-gray-900;
+/* 2. Custom Global Base Styles */
+@layer base {
+  html {
+    /* Ensures smooth scrolling for marketplace navigation */
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-white text-gray-900 antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom selection color for branding */
+  ::selection {
+    @apply bg-accent/30 text-gray-900;
+  }
+}
+
+/* 3. Custom Component Classes */
+@layer components {
+  /* A reusable class for marketplace product cards */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  }
+
+  /* Standard button for the "Goodz" branding */
+  .btn-primary {
+    @apply px-6 py-2 bg-brand text-white rounded-lg font-medium 
+           hover:bg-brand-dark transition-colors disabled:opacity-50;
+  }
+}
+
+/* 4. Global Utility Overrides */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
