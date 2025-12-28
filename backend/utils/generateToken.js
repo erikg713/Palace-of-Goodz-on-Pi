@@ -1,23 +1,24 @@
-import jwt from 'jsonwebtoken';
+const jwt = require('jsonwebtoken');
+const config = require('../config');
 
 /**
- * Generates a JWT and sets it as an HTTP-only cookie.
- * @param {Object} res - The Express response object.
- * @param {string} userId - The ID of the authenticated user.
+ * Palace of Goodz - JWT Generator
+ * Creates a signed token to maintain user sessions across the standalone project.
+ * * @param {Object} user - The user object from your database
+ * @returns {String} - Encrypted JWT string
  */
-const generateToken = (res, userId) => {
-  // 1. Create the token
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: '30d', 
-  });
+const generateToken = (user) => {
+  // We only encode the essentials: database ID, Pi UID, and Palace Role
+  const payload = {
+    id: user.id,
+    pi_uid: user.pi_uid,
+    role: user.role
+  };
 
-  // 2. Set the JWT as an HTTP-Only Cookie
-  res.cookie('jwt', token, {
-    httpOnly: true, // Shield against XSS attacks
-    secure: process.env.NODE_ENV !== 'development', // Only use HTTPS in production
-    sameSite: 'strict', // Shield against CSRF attacks
-    maxAge: 30 * 24 * 60 * 60 * 1000, // Matches expiresIn (30 days)
+  // Sign the token using the secret from your backend/config.js
+  return jwt.sign(payload, config.jwt.secret, {
+    expiresIn: config.jwt.expiresIn || '7d', // Default to 7 days if not specified
   });
 };
 
-export default generateToken;
+module.exports = generateToken;
