@@ -1,49 +1,65 @@
-import { pool } from '../db.js';
-import asyncHandler from 'express-async-handler';
-import Item from '../models/Item.js';
+import Product from '../models/itemModel.js'; // Assuming you have a Mongoose/SQL model
+import { removeFile } from '../utils/fileRemover.js';
 
-// @desc    Get all items
-// @route   GET /api/items
-// @access  Public
-export const getItems = asyncHandler(async (req, res) => {
-  const items = await Item.find({});
-  res.json(items);
-});
-
-// @desc    Get single item by ID
-// @route   GET /api/items/:id
-// @access  Public
-export const getItemById = asyncHandler(async (req, res) => {
-  const item = await Item.findById(req.params.id);
-
-  if (item) {
-    res.json(item);
-  } else {
-    res.status(404);
-    throw new Error('Item not found');
-  }
-});
-
-export const uploadItem = async (req, res) => {
-  const { creator_id, name, description, price_pi, file_url } = req.body;
+/**
+ * @desc    Create a new item (Good)
+ * @route   POST /api/items
+ * @access  Private (Creator/Admin)
+ */
+export const createItem = async (req, res) => {
   try {
-    const result = await pool.query(
-      `INSERT INTO items (creator_id, name, description, price_pi, file_url)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [creator_id, name, description, price_pi, file_url]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: 'Item upload failed', details: err });
+    const { name, price, description, category, countInStock } = req.body;
+
+    // The image path comes from the uploadMiddleware (Multer)
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '/uploads/placeholder.jpg';
+
+    const item = await Product.create({
+      user: req.user.id, // ID from protect middleware
+      name,
+      price,
+      description,
+      category,
+      imageUrl,
+      countInStock,
+    });
+
+    res.status(201).json({ success: true, data: item });
+  } catch (error) {
+    // If DB save fails, we should delete the uploaded image to save space
+    if (req.file) removeFile(req.file.path);
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
-export const getItems = async (_req, res) => {
+/**
+ * @desc    Get all items with optional filtering
+ * @route   GET /api/items
+ * @access  Public
+ */
+export const getItems = async (req, res) => {
   try {
-    const result = await pool.query(`SELECT * FROM items ORDER BY created_at DESC`);
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch items', details: err });
+    const keyword = req.query.keyword ? {
+      name: { $regex: req.query.keyword, $options: 'i' }
+    } : {};
+
+    const items = await Product.find({ ...keyword });
+    res.json({ success: true, count: items.length, data: items });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error fetching items" });
+  }
+};
+
+/**
+ * @desc    Get single item details
+ * @route   GET /api/items/:id
+ * @access  Public
+ */
+export const getItemById = async (req, res) => {
+  try {
+    const item = await Product.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Invalid Item ID" });
   }
 };
