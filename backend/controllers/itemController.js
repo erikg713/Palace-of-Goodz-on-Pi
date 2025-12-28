@@ -1,65 +1,99 @@
-import Product from '../models/itemModel.js'; // Assuming you have a Mongoose/SQL model
+import * as ItemModel from '../models/itemModel.js';
 import { removeFile } from '../utils/fileRemover.js';
 
 /**
- * @desc    Create a new item (Good)
+ * @desc    Fetch all marketplace Goodz
+ * @route   GET /api/items
+ * @access  Public
+ */
+export const getItems = async (req, res) => {
+  try {
+    const items = await ItemModel.getAllItems();
+    res.json({ success: true, count: items.length, data: items });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to retrieve items." });
+  }
+};
+
+/**
+ * @desc    Fetch a single Good's details
+ * @route   GET /api/items/:id
+ * @access  Public
+ */
+export const getItemById = async (req, res) => {
+  try {
+    const item = await ItemModel.getItemById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Item not found in the Palace." });
+    }
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching item details." });
+  }
+};
+
+/**
+ * @desc    List a new Good (Create)
  * @route   POST /api/items
  * @access  Private (Creator/Admin)
  */
 export const createItem = async (req, res) => {
   try {
-    const { name, price, description, category, countInStock } = req.body;
+    const { name, description, category, price_pi, stock_count } = req.body;
+    
+    // Image handling from Multer middleware
+    const image_url = req.file ? `/uploads/${req.file.filename}` : '/uploads/placeholder.jpg';
 
-    // The image path comes from the uploadMiddleware (Multer)
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '/uploads/placeholder.jpg';
-
-    const item = await Product.create({
-      user: req.user.id, // ID from protect middleware
+    const itemData = {
+      creator_id: req.user.id, // Injected by protectRoutes middleware
       name,
-      price,
       description,
       category,
-      imageUrl,
-      countInStock,
-    });
+      price_pi,
+      image_url,
+      stock_count
+    };
 
-    res.status(201).json({ success: true, data: item });
+    const newItem = await ItemModel.createItem(itemData);
+    res.status(201).json({ success: true, data: newItem });
   } catch (error) {
-    // If DB save fails, we should delete the uploaded image to save space
+    // Clean up uploaded file if DB entry fails
     if (req.file) removeFile(req.file.path);
     res.status(400).json({ success: false, message: error.message });
   }
 };
 
 /**
- * @desc    Get all items with optional filtering
- * @route   GET /api/items
- * @access  Public
+ * @desc    Update a Good's listing
+ * @route   PUT /api/items/:id
+ * @access  Private (Creator/Admin)
  */
-export const getItems = async (req, res) => {
+export const updateItem = async (req, res) => {
   try {
-    const keyword = req.query.keyword ? {
-      name: { $regex: req.query.keyword, $options: 'i' }
-    } : {};
+    const id = req.params.id;
+    const existingItem = await ItemModel.getItemById(id);
 
-    const items = await Product.find({ ...keyword });
-    res.json({ success: true, count: items.length, data: items });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Server Error fetching items" });
-  }
-};
+    if (!existingItem) {
+      return res.status(404).json({ success: false, message: "Item not found." });
+    }
 
-/**
- * @desc    Get single item details
- * @route   GET /api/items/:id
- * @access  Public
- */
-export const getItemById = async (req, res) => {
-  try {
-    const item = await Product.findById(req.params.id);
-    if (!item) return res.status(404).json({ message: "Item not found" });
-    res.json({ success: true, data: item });
+    // Authorization: Only the original creator or an admin can edit
+    if (existingItem.creator_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: "Not authorized to edit this listing." });
+    }
+
+    const itemData = {
+      name: req.body.name || existingItem.name,
+      description: req.body.description || existingItem.description,
+      category: req.body.category || existingItem.category,
+      price_pi: req.body.price_pi || existingItem.price_pi,
+      image_url: req.file ? `/uploads/${req.file.filename}` : existingItem.image_url,
+      stock_count: req.body.stock_count || existingItem.stock_count
+    };
+
+    const updatedItem = await ItemModel.updateItem(id, itemData);
+    res.json({ success: true, data: updatedItem });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Invalid Item ID" });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
