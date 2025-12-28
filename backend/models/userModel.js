@@ -36,5 +36,23 @@ const userSchema = mongoose.Schema({
   },
 }, { timestamps: true });
 
+import db from '../config/db.js'; // Your pg pool connection
+
+export const createUser = async (username, pi_uid, email, role = 'buyer') => {
+  const query = `
+    INSERT INTO users (username, pi_uid, email, role)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (pi_uid) DO UPDATE SET username = EXCLUDED.username
+    RETURNING *;
+  `;
+  const result = await db.query(query, [username, pi_uid, email, role]);
+  return result.rows[0];
+};
+
+export const findUserByPiUid = async (pi_uid) => {
+  const result = await db.query('SELECT * FROM users WHERE pi_uid = $1', [pi_uid]);
+  return result.rows[0];
+};
+
 const User = mongoose.model('User', userSchema);
 export default User;
