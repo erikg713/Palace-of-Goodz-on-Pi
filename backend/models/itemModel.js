@@ -1,66 +1,78 @@
-export const ItemModel = {
-  createTable: `
-    CREATE TABLE IF NOT EXISTS items (
-      id SERIAL PRIMARY KEY,
-      creator_id INTEGER REFERENCES users(id),
-      name TEXT,
-      description TEXT,
-      price_pi INTEGER,
-      file_url TEXT,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `,
-};
-import mongoose from 'mongoose';
+import db from '../config/db.js';
 
-const itemSchema = mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    description: { type: String },
-    price: { type: Number, required: true },
-    stock: { type: Number, default: 0 },
-  },
-  { timestamps: true }
-);
+/**
+ * Palace of Goodz - Item Model (PostgreSQL)
+ */
 
-const Item = mongoose.model('Item', itemSchema);
-
-export default Item;
-
-// backend/models/itemModel.js
-import db from '../config.js';
-
+// 1. Fetch all items with Creator details
 export const getAllItems = async () => {
-  const result = await db.query('SELECT * FROM items ORDER BY created_at DESC');
+  const query = `
+    SELECT 
+      items.*, 
+      users.username AS creator_name 
+    FROM items 
+    JOIN users ON items.creator_id = users.id 
+    ORDER BY items.created_at DESC
+  `;
+  const result = await db.query(query);
   return result.rows;
 };
 
+// 2. Fetch a single item by ID
 export const getItemById = async (id) => {
-  const result = await db.query('SELECT * FROM items WHERE id = $1', [id]);
+  const query = `
+    SELECT 
+      items.*, 
+      users.username AS creator_name 
+    FROM items 
+    JOIN users ON items.creator_id = users.id 
+    WHERE items.id = $1
+  `;
+  const result = await db.query(query, [id]);
   return result.rows[0];
 };
 
-export const createItem = async (item) => {
-  const { name, description, price, image_url, creator_id } = item;
-  const result = await db.query(
-    `INSERT INTO items (name, description, price, image_url, creator_id) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [name, description, price, image_url, creator_id]
-  );
+// 3. Create a new "Good" in the Palace
+export const createItem = async (itemData) => {
+  const { 
+    creator_id, 
+    name, 
+    description, 
+    category, 
+    price_pi, 
+    image_url, 
+    stock_count 
+  } = itemData;
+
+  const query = `
+    INSERT INTO items (
+      creator_id, 
+      name, 
+      description, 
+      category, 
+      price_pi, 
+      image_url, 
+      stock_count
+    ) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7) 
+    RETURNING *;
+  `;
+  
+  const values = [creator_id, name, description, category, price_pi, image_url, stock_count];
+  const result = await db.query(query, values);
   return result.rows[0];
 };
-import mongoose from 'mongoose';
 
-const itemSchema = mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
-  name: { type: String, required: true },
-  imageUrl: { type: String, required: true },
-  category: { type: String, required: true },
-  description: { type: String, required: true },
-  price: { type: Number, required: true, default: 0 }, // Price in Pi
-  countInStock: { type: Number, required: true, default: 0 },
-  rating: { type: Number, default: 0 },
-  numReviews: { type: Number, default: 0 },
-}, { timestamps: true });
-
-const Item = mongoose.model('Item', itemSchema);
-export default Item;
+// 4. Update an existing item
+export const updateItem = async (id, itemData) => {
+  const { name, description, category, price_pi, image_url, stock_count } = itemData;
+  const query = `
+    UPDATE items 
+    SET name = $1, description = $2, category = $3, price_pi = $4, image_url = $5, stock_count = $6
+    WHERE id = $7
+    RETURNING *;
+  `;
+  const values = [name, description, category, price_pi, image_url, stock_count, id];
+  const result = await db.query(query, values);
+  return result.rows[0];
+};
