@@ -1,26 +1,55 @@
 import express from 'express';
-import { getItems, getItemById } from '../controllers/itemController.js';
-
 const router = express.Router();
 
+import {
+  getItems,
+  getItemById,
+  createItem,
+  updateItem,
+  deleteItem,
+  getTopItems,
+  getItemsByCategory
+} from '../controllers/itemController.js';
+
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { authorizeRoles } from '../middleware/roleMiddleware.js';
+import upload from '../middleware/uploadMiddleware.js'; // Multer configuration
+
+/**
+ * 1. Public Discovery Routes
+ * These are accessible to anyone browsing the Palace.
+ */
 router.get('/', getItems);
+router.get('/top', getTopItems);
+router.get('/category/:category', getItemsByCategory);
 router.get('/:id', getItemById);
 
-export default router;
+/**
+ * 2. Protected Inventory Management
+ * Only authenticated 'creators' or 'admins' can modify the marketplace.
+ */
 
-const router = express.Router();
+// Create a new Good: requires auth, creator role, and image upload
+router.post(
+  '/', 
+  protect, 
+  authorizeRoles('creator', 'admin'), 
+  upload.single('image'), 
+  createItem
+);
 
-router.post('/', uploadItem);
-router.get('/', getItems);
-export default router;
-// backend/routes/itemRoutes.js
-import express from 'express';
-import * as itemController from '../controllers/itemController.js';
-
-const router = express.Router();
-
-router.get('/', itemController.getItems);
-router.get('/:id', itemController.getItem);
-router.post('/', itemController.postItem);
+// Update or Remove a Good
+router.route('/:id')
+  .put(
+    protect, 
+    authorizeRoles('creator', 'admin'), 
+    upload.single('image'), 
+    updateItem
+  )
+  .delete(
+    protect, 
+    authorizeRoles('creator', 'admin'), 
+    deleteItem
+  );
 
 export default router;
