@@ -22,3 +22,19 @@ userSchema.pre('save', async function (next) {
 
 const User = mongoose.model('User', userSchema);
 export default User;
+
+import mongoose from 'mongoose';
+
+const userSchema = mongoose.Schema({
+  pi_uid: { type: String, required: true, unique: true }, // The unique ID from Pi SDK
+  username: { type: String, required: true },
+  email: { type: String, unique: true, sparse: true }, // Sparse allows null for non-verified emails
+  role: { 
+    type: String, 
+    enum: ['buyer', 'creator', 'admin'], 
+    default: 'buyer' 
+  },
+}, { timestamps: true });
+
+const User = mongoose.model('User', userSchema);
+export default User;
