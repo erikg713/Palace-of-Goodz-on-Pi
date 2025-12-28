@@ -1,48 +1,54 @@
-import jwt from 'jsonwebtoken';
-import jwt from 'jsonwebtoken';
-import asyncHandler from 'express-async-handler';
-import User from '../models/User.js';
+const jwt = require('jsonwebtoken');
+const config = require('../config');
 
-export const protect = asyncHandler(async (req, res, next) => {
+/**
+ * Palace of Goodz - Authentication Middleware
+ * Validates the JWT sent in the Authorization header.
+ */
+const protect = async (req, res, next) => {
   let token;
 
-  if (req.headers.authorization?.startsWith('Bearer')) {
+  // 1. Check if token exists in headers (format: Bearer <token>)
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
+      // 2. Extract token from header
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+
+      // 3. Verify token using the secret from config.js
+      const decoded = jwt.verify(token, config.jwt.secret);
+
+      // 4. Attach user data to the request object for use in controllers
+      req.user = {
+        id: decoded.id,
+        pi_uid: decoded.pi_uid,
+        role: decoded.role
+      };
+
       next();
     } catch (error) {
-      res.status(401);
-      throw new Error('Not authorized, token failed');
+      console.error('Auth Middleware Error:', error.message);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   if (!token) {
-    res.status(401);
-    throw new Error('Not authorized, no token');
-  }
-});
-
-export const authenticateJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization header missing' });
-  }
-
-  const token = authHeader.split(' ')[1]; // Expect Bearer <token>
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token missing' });
-  }
-
-  try {
-    const secret = process.env.JWT_SECRET || 'your_jwt_secret';
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded; // Attach user payload to request object
-    next();
-  } catch (err) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ message: 'Not authorized, no token found' });
   }
 };
+
+/**
+ * Role-Based Access Control (RBAC)
+ * Limits access to specific roles (e.g., only 'creator' can upload)
+ */
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: `User role '${req.user.role}' is not authorized to access this route` 
+      });
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorize };
