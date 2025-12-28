@@ -1,57 +1,68 @@
-/* 1. Core Tailwind Directives */
+/* 1. Core Tailwind Engine */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 2. Custom Global Base Styles */
+/* 2. Global Palace Overrides */
 @layer base {
   html {
-    /* Ensures smooth scrolling for marketplace navigation */
     scroll-behavior: smooth;
+    /* Removes the gray highlight box on mobile taps for a more "app-like" feel */
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-white text-gray-900 antialiased;
-    font-family: 'Inter', sans-serif;
+    /* Using a clean, modern sans-serif stack */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Custom selection color for branding */
+  /* Custom branding for text selection */
   ::selection {
-    @apply bg-accent/30 text-gray-900;
+    @apply bg-brand/20 text-brand;
   }
 }
 
-/* 3. Custom Component Classes */
+/* 3. Reusable Palace Component UI */
 @layer components {
-  /* A reusable class for marketplace product cards */
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  /* Main Call-to-Action Buttons */
+  .btn-primary {
+    @apply bg-brand text-white font-black py-3 px-8 rounded-2xl 
+           hover:bg-brand-dark transition-all shadow-lg 
+           shadow-brand/20 active:scale-95 flex items-center justify-center gap-2;
   }
 
-  /* Standard button for the "Goodz" branding */
-  .btn-primary {
-    @apply px-6 py-2 bg-brand text-white rounded-lg font-medium 
-           hover:bg-brand-dark transition-colors disabled:opacity-50;
+  /* Secondary Action Buttons (Outline style) */
+  .btn-secondary {
+    @apply border-2 border-brand text-brand font-bold py-3 px-8 rounded-2xl
+           hover:bg-brand/5 transition-all active:scale-95;
+  }
+
+  /* Standardized Form Inputs */
+  .input-field {
+    @apply w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl 
+           focus:ring-2 focus:ring-brand focus:bg-white outline-none 
+           transition-all placeholder:text-gray-400;
+  }
+
+  /* Marketplace Item Card Effect */
+  .card-hover {
+    @apply transition-all duration-500 hover:shadow-2xl hover:-translate-y-2;
   }
 }
 
-/* 4. Global Utility Overrides */
+/* 4. Custom Marketplace Utilities */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-}
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer components {
-  .btn-primary {
-    @apply bg-brand text-white font-black py-3 px-8 rounded-2xl hover:bg-brand-dark transition-all shadow-lg shadow-brand/20 active:scale-95;
+  /* Custom scrollbar hide for horizontal category lists */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
-  .input-field {
-    @apply w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand focus:bg-white outline-none transition-all;
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
