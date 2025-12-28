@@ -1,4 +1,20 @@
 import express from 'express';
+import { authenticateJWT } from '../middleware/authMiddleware.js';
+import { authorizeRoles } from '../middleware/roleMiddleware.js';
+
+const router = express.Router();
+const router = express.Router();
+// A protected route only for Creators to see their items
+router.get('/user/items', 
+  authenticateJWT, 
+  authorizeRoles('creator'), 
+  async (req, res) => {
+    const userId = req.user.id;
+    // Logic to fetch items from DB...
+    res.json({ success: true, items: [] });
+  }
+);
+import express from 'express';
 const router = express.Router();
 import {
   authUser,
