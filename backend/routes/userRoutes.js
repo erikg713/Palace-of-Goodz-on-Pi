@@ -1,21 +1,6 @@
 import express from 'express';
-import { authenticateJWT } from '../middleware/authMiddleware.js';
-import { authorizeRoles } from '../middleware/roleMiddleware.js';
+const router = express.Router();
 
-const router = express.Router();
-const router = express.Router();
-// A protected route only for Creators to see their items
-router.get('/user/items', 
-  authenticateJWT, 
-  authorizeRoles('creator'), 
-  async (req, res) => {
-    const userId = req.user.id;
-    // Logic to fetch items from DB...
-    res.json({ success: true, items: [] });
-  }
-);
-import express from 'express';
-const router = express.Router();
 import {
   authUser,
   registerUser,
@@ -26,30 +11,47 @@ import {
   deleteUser,
   getUserById,
   updateUser,
+  getUserItems // Combined from your creator items logic
 } from '../controllers/userController.js';
+
 import { protect, admin } from '../middleware/authMiddleware.js';
+import { authorizeRoles } from '../middleware/roleMiddleware.js';
 
-// Public & Protected User Routes
+/**
+ * 1. Base User & Admin Routes
+ */
 router.route('/')
-  .post(registerUser)         // Register a new user
-  .get(protect, admin, getUsers); // Admin only: get all users
+  .post(registerUser)                             // Public: Register
+  .get(protect, admin, getUsers);                 // Admin: List all users
 
+/**
+ * 2. Authentication Routes
+ */
 router.post('/login', authUser);
 router.post('/logout', logoutUser);
 
+/**
+ * 3. Personal Account Routes
+ */
 router.route('/profile')
-  .get(protect, getUserProfile)    // Get current user's profile
-  .put(protect, updateUserProfile); // Update current user's profile
+  .get(protect, getUserProfile)                   // Private: Get my profile
+  .put(protect, updateUserProfile);                // Private: Update my profile
 
-// Admin-Specific Routes
+/**
+ * 4. Creator/Inventory Routes
+ */
+router.get('/items', 
+  protect, 
+  authorizeRoles('creator'), 
+  getUserItems                                    // Private: Fetch creator's Goodz
+);
+
+/**
+ * 5. Specific User Admin Routes
+ */
 router.route('/:id')
-  .delete(protect, admin, deleteUser) // Admin: delete user
-  .get(protect, admin, getUserById)   // Admin: get specific user
-  .put(protect, admin, updateUser);    // Admin: update specific user
-
-export default router;
-  .delete(protect, admin, deleteUser) // Admin: delete user
-  .get(protect, admin, getUserById)   // Admin: get specific user
-  .put(protect, admin, updateUser);    // Admin: update specific user
+  .get(protect, admin, getUserById)               // Admin: View user details
+  .put(protect, admin, updateUser)                // Admin: Edit user roles/data
+  .delete(protect, admin, deleteUser);            // Admin: Permanent removal
 
 export default router;
