@@ -4,6 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css'; // Essential for Tailwind CSS
 
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 /**
  * Palace of Goodz - Main Entry Point
  * This file bootstraps the React application.
