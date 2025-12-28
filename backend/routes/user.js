@@ -1,13 +1,34 @@
 import express from 'express';
-import { getUserProfile, updateUserProfile } from '../controllers/userController.js';
-import { protect } from '../middleware/authMiddleware.js';  // example JWT auth middleware
-
 const router = express.Router();
+import {
+  authUser,
+  registerUser,
+  logoutUser,
+  getUserProfile,
+  updateUserProfile,
+  getUsers,
+  deleteUser,
+  getUserById,
+  updateUser,
+} from '../controllers/userController.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
-// GET /api/user/profile - Protected route
-router.get('/profile', protect, getUserProfile);
+// Public & Protected User Routes
+router.route('/')
+  .post(registerUser)         // Register a new user
+  .get(protect, admin, getUsers); // Admin only: get all users
 
-// PUT /api/user/profile - Protected route
-router.put('/profile', protect, updateUserProfile);
+router.post('/login', authUser);
+router.post('/logout', logoutUser);
+
+router.route('/profile')
+  .get(protect, getUserProfile)    // Get current user's profile
+  .put(protect, updateUserProfile); // Update current user's profile
+
+// Admin-Specific Routes
+router.route('/:id')
+  .delete(protect, admin, deleteUser) // Admin: delete user
+  .get(protect, admin, getUserById)   // Admin: get specific user
+  .put(protect, admin, updateUser);    // Admin: update specific user
 
 export default router;
