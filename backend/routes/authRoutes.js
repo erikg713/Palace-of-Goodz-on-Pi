@@ -1,12 +1,65 @@
 import express from 'express';
-import { loginUser, registerUser } from '../controllers/authController.js';
-
 const router = express.Router();
 
-// POST /api/auth/register
-router.post('/register', registerUser);
+import { 
+  authPiUser, 
+  getMe, 
+  refreshPalaceToken 
+} from '../controllers/authController.js';
 
-// POST /api/auth/login
-router.post('/login', loginUser);
+import { protect } from '../middleware/authMiddleware.js';
+
+/**
+ * @route   POST /api/auth/pi
+ * @desc    Authenticate user via Pi Network SDK data
+ * @access  Public
+ */
+router.post('/pi', authPiUser);
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current logged-in user data from token
+ * @access  Private
+ */
+router.get('/me', protect, getMe);
+
+/**
+ * @route   POST /api/auth/refresh
+ * @desc    Refresh the JWT session
+ * @access  Private
+ */
+router.post('/refresh', protect, refreshPalaceToken);
+
+export default router;import express from 'express';
+const router = express.Router();
+
+import { 
+  authPiUser, 
+  getMe, 
+  refreshPalaceToken 
+} from '../controllers/authController.js';
+
+import { protect } from '../middleware/authMiddleware.js';
+
+/**
+ * @route   POST /api/auth/pi
+ * @desc    Authenticate user via Pi Network SDK data
+ * @access  Public
+ */
+router.post('/pi', authPiUser);
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current logged-in user data from token
+ * @access  Private
+ */
+router.get('/me', protect, getMe);
+
+/**
+ * @route   POST /api/auth/refresh
+ * @desc    Refresh the JWT session
+ * @access  Private
+ */
+router.post('/refresh', protect, refreshPalaceToken);
 
 export default router;
