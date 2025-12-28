@@ -1,55 +1,61 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const token = localStorage.getItem('pi_token');
+/**
+ * Palace of Goodz - API Service
+ * Using Axios to communicate with the backend at 50.87.138.35
+ */
 
-const axiosInstance = axios.create({
-  baseURL: BASE_URL,
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
   },
+  timeout: 10000,
 });
 
-// Re-authenticate token on each call if needed
-const setAuthToken = () => {
-  const token = localStorage.getItem('pi_token');
-  if (token) {
-    axiosInstance.defaults.headers['Authorization'] = `Bearer ${token}`;
+// --- Request Interceptor ---
+// Automatically attaches the JWT to every request if it exists
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// --- Response Interceptor ---
+// Handles 401 (Expired token) and 500 (Server error) globally
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If unauthorized, you might trigger a token refresh or redirect to login
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      console.warn("Session expired. Redirecting to login...");
+      // Logic: localStorage.removeItem('access_token'); window.location.href = '/login';
+    }
+
+    return Promise.reject(error);
   }
+);
+
+// --- API Modules ---
+export const productApi = {
+  fetchInventory: () => api.get('/products'),
+  fetchById: (id) => api.get(`/products/${id}`),
+  addGood: (productData) => api.post('/products', productData),
 };
 
-// Fetch all items from the marketplace
-export const fetchItems = async () => {
-  setAuthToken();
-  const res = await axiosInstance.get('/items');
-  return res.data;
+export const authApi = {
+  login: (credentials) => api.post('/auth/login', credentials),
+  register: (userData) => api.post('/auth/register', userData),
 };
 
-// Purchase an item
-export const buyItem = async (itemId) => {
-  setAuthToken();
-  const res = await axiosInstance.post(`/items/${itemId}/purchase`);
-  return res.data;
-};
-
-// Get items owned by the logged-in Pi user
-export const getUserItems = async () => {
-  setAuthToken();
-  const res = await axiosInstance.get('/user/items');
-  return res.data;
-};
-
-// Create a new item (admin or marketplace creator role)
-export const createItem = async (itemData) => {
-  setAuthToken();
-  const res = await axiosInstance.post('/items', itemData);
-  return res.data;
-};
-
-// Optional: Login handler to save token (used after Pi SDK auth)
-export const loginUser = async (piUser) => {
-  const res = await axiosInstance.post('/auth/login', { username: piUser.username });
-  localStorage.setItem('pi_token', res.data.token);
-  return res.data;
-};
+export default api;
