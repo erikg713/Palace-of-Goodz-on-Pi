@@ -1,26 +1,41 @@
 import express from 'express';
-import { purchaseItem } from '../controllers/purchaseController.js';
-import express from 'express';
-import { createPurchase, getPurchaseHistory } from '../controllers/purchaseController.js';
-import { protect } from '../middleware/authMiddleware.js';
-
 const router = express.Router();
 
-router.post('/', protect, createPurchase);
-router.get('/history', protect, getPurchaseHistory);
+import {
+  createPurchaseIntent,
+  verifyPiPayment,
+  getPurchaseHistory,
+  getPurchaseById,
+  updateDeliveryStatus
+} from '../controllers/purchaseController.js';
 
-export default router;
+import { protect, admin } from '../middleware/authMiddleware.js';
+import { authorizeRoles } from '../middleware/roleMiddleware.js';
 
-const router = express.Router();
+/**
+ * 1. Transaction Lifecycle
+ */
 
-router.post('/:itemId', purchaseItem);
-export default router;
-import express from 'express';
-import { startPurchase, completePurchase } from '../controllers/purchaseController.js';
+// Step 1: Initialize a purchase (Public/Protected)
+// Creates a record in your DB before the Pi Wallet opens
+router.post('/intent', protect, createPurchaseIntent);
 
-const router = express.Router();
+// Step 2: Server-side verification of the Pi Blockchain transaction
+// This is called by your frontend after the Pi SDK returns 'onReadyForServerApproval'
+router.post('/verify', protect, verifyPiPayment);
 
-router.post('/start', startPurchase); // Called during onReadyForServerApproval
-router.post('/complete', completePurchase); // Called during onReadyForServerCompletion
+/**
+ * 2. User Purchase History
+ */
+router.route('/my-orders')
+  .get(protect, getPurchaseHistory);
+
+/**
+ * 3. Order Management & Admin/Creator Controls
+ */
+router.route('/:id')
+  .get(protect, getPurchaseById)
+  // Creators or Admins can update shipping/delivery status
+  .put(protect, authorizeRoles('creator', 'admin'), updateDeliveryStatus);
 
 export default router;
