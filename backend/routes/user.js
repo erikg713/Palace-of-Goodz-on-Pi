@@ -32,3 +32,8 @@ router.route('/:id')
   .put(protect, admin, updateUser);    // Admin: update specific user
 
 export default router;
+  .delete(protect, admin, deleteUser) // Admin: delete user
+  .get(protect, admin, getUserById)   // Admin: get specific user
+  .put(protect, admin, updateUser);    // Admin: update specific user
+
+export default router;
